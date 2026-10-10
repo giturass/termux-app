@@ -197,7 +197,7 @@
 
                     <com.google.android.material.floatingactionbutton.FloatingActionButton
                         android:id="@+id/new_session_button"
-                        style="@style/Widget.Material3.FloatingActionButton.Primary"
+                        style="@style/Widget.Material3.FloatingActionButton.Surface"
                         android:layout_width="56dp"
                         android:layout_height="56dp"
                         android:contentDescription="@string/action_new_session"
