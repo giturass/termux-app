@@ -15,6 +15,7 @@ import android.view.MenuItem;
 import android.widget.ListView;
 import android.widget.PopupMenu;
 import android.widget.PopupWindow;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AlertDialog;
@@ -68,13 +69,17 @@ public class BookmarkUiTest {
         TerminalBookmarksListViewController adapter =
             new TerminalBookmarksListViewController(activity, store, item -> {});
         controller.visible();
-        View drawer = activity.getDrawer();
+        ViewGroup drawer = activity.getDrawer();
         activity.getDrawer().openDrawer(Gravity.START, false);
         measureDrawer(drawer);
         Shadows.shadowOf(Looper.getMainLooper()).idle();
         measureDrawer(drawer);
         ListView list = activity.findViewById(R.id.terminal_bookmarks_list);
-        if (!initiallyCollapsed) assertTrue(list.getLastVisiblePosition() < adapter.getCount() - 1);
+        ScrollView scroll = activity.findViewById(R.id.terminal_drawer_scroll);
+        if (!initiallyCollapsed) {
+            View lastCard = list.getChildAt(adapter.getCount() - 1);
+            assertTrue(bounds(drawer, lastCard).bottom > bounds(drawer, scroll).bottom - scroll.getPaddingBottom());
+        }
 
         store.add(bookmark());
         adapter.refreshAndReveal("location");
@@ -83,25 +88,30 @@ public class BookmarkUiTest {
         assertEquals(View.VISIBLE, list.getVisibility());
         assertFalse(store.isCollapsed());
         int newPosition = adapter.getCount() - 1;
-        assertTrue(list.getFirstVisiblePosition() <= newPosition);
-        assertEquals(newPosition, list.getLastVisiblePosition());
-        View newCard = list.getChildAt(newPosition - list.getFirstVisiblePosition());
+        assertEquals(0, list.getFirstVisiblePosition());
+        assertEquals(adapter.getCount(), list.getChildCount());
+        View newCard = list.getChildAt(newPosition);
         assertEquals("location", newCard.getTag());
-        assertTrue("The new card must be fully visible", newCard.getTop() >= list.getPaddingTop());
+        Rect viewport = bounds(drawer, scroll);
+        Rect cardBounds = bounds(drawer, newCard);
+        assertTrue("The drawer must scroll to reveal the new bookmark", scroll.getScrollY() > 0);
+        assertTrue("The new card must be fully visible", cardBounds.top >= viewport.top + scroll.getPaddingTop());
         assertTrue("The new card must be fully visible",
-            newCard.getBottom() <= list.getHeight() - list.getPaddingBottom());
+            cardBounds.bottom <= viewport.bottom - scroll.getPaddingBottom());
+        assertTrue("The new card must stay above the floating action",
+            cardBounds.bottom <= bounds(drawer, activity.findViewById(R.id.new_session_button)).top);
 
         // Once the user scrolls elsewhere, terminal refreshes must not pull them back to the new item.
-        list.setSelectionFromTop(1, -10);
+        scroll.scrollTo(0, Math.round(72 * drawer.getResources().getDisplayMetrics().density));
         measureDrawer(drawer);
-        int firstPosition = list.getFirstVisiblePosition();
-        int firstTop = list.getChildAt(0).getTop();
+        int scrollY = scroll.getScrollY();
+        int firstTop = bounds(drawer, list.getChildAt(0)).top;
         store.rename("saved-1", "Renamed while browsing");
         adapter.refresh();
         Shadows.shadowOf(Looper.getMainLooper()).idle();
         measureDrawer(drawer);
-        assertEquals(firstPosition, list.getFirstVisiblePosition());
-        assertEquals(firstTop, list.getChildAt(0).getTop());
+        assertEquals(scrollY, scroll.getScrollY());
+        assertEquals(firstTop, bounds(drawer, list.getChildAt(0)).top);
     }
 
     @Test
@@ -112,7 +122,7 @@ public class BookmarkUiTest {
         store.add(bookmark());
         TerminalBookmarksListViewController adapter =
             new TerminalBookmarksListViewController(activity, store, item -> {});
-        View drawer = activity.getDrawer();
+        ViewGroup drawer = activity.getDrawer();
         ListView list = activity.findViewById(R.id.terminal_bookmarks_list);
         View sessions = activity.findViewById(R.id.terminal_sessions_list);
         View toggle = activity.findViewById(R.id.terminal_bookmarks_toggle);
@@ -121,12 +131,13 @@ public class BookmarkUiTest {
         measureDrawer(drawer);
         Shadows.shadowOf(Looper.getMainLooper()).idle();
         measureDrawer(drawer);
-        int expandedSessionsHeight = sessions.getHeight();
+        int expandedSessionsTop = bounds(drawer, sessions).top;
         assertTrue(list.getHeight() > 0);
         toggle.performClick();
         measureDrawer(drawer);
         assertEquals(View.GONE, list.getVisibility());
-        assertTrue(sessions.getHeight() > expandedSessionsHeight);
+        assertTrue("Collapsing bookmarks moves sessions up in the shared page",
+            bounds(drawer, sessions).top < expandedSessionsTop);
         assertEquals(activity.getString(R.string.action_expand_bookmarks), toggle.getContentDescription());
         store.rename("location", "Updated while collapsed");
         adapter.refresh();
@@ -226,6 +237,51 @@ public class BookmarkUiTest {
     @Test
     public void deletingBookmarkDuringTapDoesNotOpenItsReplacementBeforeLayout() {
         verifyBookmarkTouch(false, true);
+    }
+
+    @Test
+    public void scrollingFromBookmarkMenuCancelsTheClick() {
+        verifyBookmarkSwipe(R.id.session_menu_button);
+    }
+
+    @Test
+    public void scrollingFromBookmarkContentDoesNotOpenTheLocation() {
+        verifyBookmarkSwipe(R.id.session_card_content);
+    }
+
+    private void verifyBookmarkSwipe(int touchTargetId) {
+        ActivityController<TermuxActivity> controller = Robolectric.buildActivity(TermuxActivity.class);
+        TermuxActivity activity = host(controller);
+        TerminalBookmarkStore store = new TerminalBookmarkStore(activity);
+        for (int i = 0; i < 12; i++) {
+            store.add(new TerminalBookmark("saved-" + i, "Bookmark " + i, "local", "",
+                Collections.emptyList(), "/tmp/" + i));
+        }
+        TerminalBookmark[] opened = {null};
+        new TerminalBookmarksListViewController(activity, store, item -> opened[0] = item);
+        controller.visible();
+        activity.getDrawer().openDrawer(Gravity.START, false);
+        ViewGroup drawer = activity.getDrawer();
+        measureDrawer(drawer);
+        ListView list = activity.findViewById(R.id.terminal_bookmarks_list);
+        ScrollView scroll = activity.findViewById(R.id.terminal_drawer_scroll);
+        Rect target = bounds(drawer, list.getChildAt(1).findViewById(touchTargetId));
+        long time = SystemClock.uptimeMillis();
+        float step = 40 * activity.getResources().getDisplayMetrics().density;
+        int[] actions = {MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE,
+            MotionEvent.ACTION_MOVE, MotionEvent.ACTION_UP};
+        for (int i = 0; i < actions.length; i++) {
+            MotionEvent event = MotionEvent.obtain(time, time + i * 30, actions[i],
+                target.exactCenterX(), target.exactCenterY() - i * step, 0);
+            drawer.dispatchTouchEvent(event);
+            event.recycle();
+        }
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertTrue("Dragging a bookmark must scroll the shared page", scroll.getScrollY() > 0);
+        assertEquals(0, list.getFirstVisiblePosition());
+        assertEquals(list.getPaddingTop(), list.getChildAt(0).getTop());
+        assertNull(ShadowApplication.getInstance().getLatestPopupWindow());
+        assertNull(opened[0]);
     }
 
     private void verifyBookmarkTouch(boolean refresh) {
@@ -453,6 +509,12 @@ public class BookmarkUiTest {
     }
 
     private static void measureDrawer(View drawer) {
+        measureDrawerOnce(drawer);
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        measureDrawerOnce(drawer);
+    }
+
+    private static void measureDrawerOnce(View drawer) {
         float density = drawer.getResources().getDisplayMetrics().density;
         int width = Math.round(320 * density), height = Math.round(640 * density);
         drawer.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
@@ -510,7 +572,8 @@ public class BookmarkUiTest {
     }
 
     private static Rect bounds(ViewGroup row, View child) {
-        Rect rect = new Rect(0, 0, child.getWidth(), child.getHeight());
+        Rect rect = new Rect();
+        child.getDrawingRect(rect);
         row.offsetDescendantRectToMyCoords(child, rect);
         return rect;
     }

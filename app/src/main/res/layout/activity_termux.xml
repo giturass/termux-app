@@ -17,7 +17,7 @@
         android:layout_marginVertical="0dp"
         android:orientation="vertical">
 
-        <androidx.drawerlayout.widget.DrawerLayout
+        <com.termux.app.terminal.TerminalDrawerLayout
             android:id="@+id/drawer_layout"
             android:layout_width="match_parent"
             android:layout_alignParentTop="true"
@@ -41,171 +41,183 @@
                     tools:ignore="UnusedAttribute" />
             </FrameLayout>
 
-            <LinearLayout
+            <FrameLayout
                 android:id="@+id/left_drawer"
-                android:layout_width="304dp"
+                android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_gravity="start"
-                android:choiceMode="singleChoice"
-                android:divider="@android:color/transparent"
-                android:dividerHeight="0dp"
                 android:descendantFocusability="blocksDescendants"
-                android:orientation="vertical"
-                android:padding="12dp"
                 android:background="@drawable/terminal_drawer_background">
 
                 <LinearLayout
-                    android:id="@+id/terminal_drawer_header"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:paddingStart="12dp"
-                    android:paddingTop="12dp"
-                    android:paddingBottom="12dp"
-                    android:orientation="horizontal">
+                    android:layout_height="match_parent"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:layout_marginEnd="12dp"
-                        android:src="@drawable/ic_mdterm"
-                        android:importantForAccessibility="no" />
-
-                    <com.google.android.material.textview.MaterialTextView
-                        android:layout_width="0dp"
+                    <LinearLayout
+                        android:id="@+id/terminal_drawer_header"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="12dp"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center_vertical"
+                        android:paddingStart="12dp"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="12dp"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:layout_marginEnd="12dp"
+                            android:src="@drawable/ic_mdterm"
+                            android:importantForAccessibility="no" />
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/application_name"
+                            android:textAppearance="?attr/textAppearanceHeadlineSmall"
+                            android:textColor="?attr/colorOnSurface" />
+
+                        <ImageButton
+                            android:id="@+id/file_system_button"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:padding="12dp"
+                            android:src="@drawable/ic_folder"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="@string/action_open_file_system"
+                            app:tint="?attr/termuxActivityDrawerImageTint" />
+
+                        <ImageButton
+                            android:id="@+id/settings_button"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:padding="12dp"
+                            android:src="@drawable/ic_settings"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="@string/action_open_settings"
+                            app:tint="?attr/termuxActivityDrawerImageTint" />
+                    </LinearLayout>
+
+                    <ScrollView
+                        android:id="@+id/terminal_drawer_scroll"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
                         android:layout_weight="1"
-                        android:text="@string/application_name"
-                        android:textAppearance="?attr/textAppearanceHeadlineSmall"
-                        android:textColor="?attr/colorOnSurface" />
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:paddingBottom="88dp"
+                        android:clipToPadding="false"
+                        android:scrollbars="none">
 
-                    <ImageButton
-                        android:id="@+id/file_system_button"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:padding="12dp"
-                        android:src="@drawable/ic_folder"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:contentDescription="@string/action_open_file_system"
-                        app:tint="?attr/termuxActivityDrawerImageTint" />
+                        <LinearLayout
+                            android:layout_width="280dp"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
 
-                    <ImageButton
-                        android:id="@+id/settings_button"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:padding="12dp"
-                        android:src="@drawable/ic_settings"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:contentDescription="@string/action_open_settings"
-                        app:tint="?attr/termuxActivityDrawerImageTint" />
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <com.google.android.material.textview.MaterialTextView
+                                    android:id="@+id/terminal_bookmarks_header"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:paddingStart="16dp"
+                                    android:paddingEnd="16dp"
+                                    android:paddingTop="8dp"
+                                    android:paddingBottom="8dp"
+                                    android:text="@string/terminal_bookmarks_header"
+                                    android:textAppearance="?attr/textAppearanceLabelLarge"
+                                    android:textColor="?attr/colorOnSurfaceVariant" />
+
+                                <ImageButton
+                                    android:id="@+id/terminal_bookmarks_toggle"
+                                    android:layout_width="48dp"
+                                    android:layout_height="48dp"
+                                    android:padding="12dp"
+                                    android:src="@drawable/ic_bookmarks_collapse"
+                                    android:background="?attr/selectableItemBackgroundBorderless"
+                                    android:contentDescription="@string/action_collapse_bookmarks"
+                                    app:tint="?attr/termuxActivityDrawerImageTint" />
+                            </LinearLayout>
+
+                            <com.termux.app.terminal.TerminalDrawerListView
+                                android:id="@+id/terminal_bookmarks_list"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:divider="@android:color/transparent"
+                                android:dividerHeight="8dp"
+                                android:listSelector="@android:color/transparent"
+                                android:scrollbars="none"
+                                android:longClickable="false" />
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:minHeight="48dp"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <com.google.android.material.textview.MaterialTextView
+                                    android:id="@+id/terminal_sessions_header"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:paddingStart="16dp"
+                                    android:paddingEnd="16dp"
+                                    android:paddingTop="8dp"
+                                    android:paddingBottom="8dp"
+                                    android:text="@string/terminal_sessions_header"
+                                    android:textAppearance="?attr/textAppearanceLabelLarge"
+                                    android:textColor="?attr/colorOnSurfaceVariant" />
+                            </LinearLayout>
+
+                            <com.termux.app.terminal.TerminalDrawerListView
+                                android:id="@+id/terminal_sessions_list"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:divider="@android:color/transparent"
+                                android:dividerHeight="8dp"
+                                android:listSelector="@android:color/transparent"
+                                android:scrollbars="none"
+                                android:choiceMode="singleChoice"
+                                android:longClickable="false" />
+                        </LinearLayout>
+                    </ScrollView>
                 </LinearLayout>
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/terminal_bookmarks_header"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
-                        android:paddingTop="8dp"
-                        android:paddingBottom="8dp"
-                        android:text="@string/terminal_bookmarks_header"
-                        android:textAppearance="?attr/textAppearanceLabelLarge"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
-
-                    <ImageButton
-                        android:id="@+id/terminal_bookmarks_toggle"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:padding="12dp"
-                        android:src="@drawable/ic_bookmarks_collapse"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:contentDescription="@string/action_collapse_bookmarks"
-                        app:tint="?attr/termuxActivityDrawerImageTint" />
-                </LinearLayout>
-
-                <ListView
-                    android:id="@+id/terminal_bookmarks_list"
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:divider="@android:color/transparent"
-                    android:dividerHeight="8dp"
-                    android:listSelector="@android:color/transparent"
-                    android:scrollbars="none"
-                    android:longClickable="false" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:minHeight="48dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/terminal_sessions_header"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
-                        android:paddingTop="8dp"
-                        android:paddingBottom="8dp"
-                        android:text="@string/terminal_sessions_header"
-                        android:textAppearance="?attr/textAppearanceLabelLarge"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
-
-                </LinearLayout>
-
-                <ListView
-                    android:id="@+id/terminal_sessions_list"
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_gravity="top"
-                    android:layout_weight="1"
-                    android:divider="@android:color/transparent"
-                    android:dividerHeight="8dp"
-                    android:listSelector="@android:color/transparent"
-                    android:scrollbars="none"
-                    android:choiceMode="singleChoice"
-                    android:longClickable="false" />
-
-                <LinearLayout
+                <FrameLayout
                     android:id="@+id/terminal_drawer_actions"
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:paddingTop="12dp"
-                    android:gravity="end"
-                    android:orientation="horizontal">
+                    android:layout_gravity="end|bottom"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginBottom="16dp"
+                    android:clipChildren="false"
+                    android:clipToPadding="false">
 
-                    <com.google.android.material.button.MaterialButton
+                    <com.google.android.material.floatingactionbutton.FloatingActionButton
                         android:id="@+id/new_session_button"
-                        style="@style/Widget.Material3.Button"
+                        style="@style/Widget.Material3.FloatingActionButton.Primary"
                         android:layout_width="56dp"
                         android:layout_height="56dp"
-                        android:minWidth="0dp"
-                        android:minHeight="0dp"
-                        android:padding="12dp"
-                        android:insetTop="0dp"
-                        android:insetBottom="0dp"
-                        android:insetLeft="0dp"
-                        android:insetRight="0dp"
                         android:contentDescription="@string/action_new_session"
                         android:tooltipText="@string/action_new_session"
-                        app:cornerRadius="16dp"
-                        app:iconSize="24dp"
-                        app:iconPadding="0dp"
-                        app:icon="@drawable/ic_new_session"
-                        app:iconGravity="textStart" />
-                </LinearLayout>
-            </LinearLayout>
+                        app:fabSize="normal"
+                        app:maxImageSize="24dp"
+                        app:srcCompat="@drawable/ic_new_session"
+                        app:useCompatPadding="false" />
+                </FrameLayout>
+            </FrameLayout>
 
-        </androidx.drawerlayout.widget.DrawerLayout>
+        </com.termux.app.terminal.TerminalDrawerLayout>
 
         <HorizontalScrollView
             android:id="@+id/terminal_toolbar"

@@ -26,6 +26,7 @@ import android.view.inputmethod.InputMethodManager;
 import androidx.fragment.app.FragmentController;
 
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.termux.R;
 import com.termux.filepicker.TermuxDocumentsProvider;
 import com.termux.shared.termux.TermuxConstants;
@@ -581,21 +582,22 @@ public class MaterialTerminalControlsTest {
     @Test
     public void drawerIconActionsFitNarrowAndCompactLayouts() {
         TermuxActivity activity = drawerActivity(true);
-        MaterialButton newSession = activity.findViewById(R.id.new_session_button);
+        FloatingActionButton newSession = activity.findViewById(R.id.new_session_button);
         ImageButton files = activity.findViewById(R.id.file_system_button);
         ImageButton settings = activity.findViewById(R.id.settings_button);
         for (int height : new int[]{640, 320, 640}) {
+            measure(activity.getDrawer(), activity, 320, height);
+            Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
             measure(activity.getDrawer(), activity, 320, height);
             assertSame(settings.getParent(), files.getParent());
             assertEquals(settings.getTop(), files.getTop());
             assertTrue(files.getRight() <= settings.getLeft());
             assertEquals(newSession.getWidth(), newSession.getHeight());
-            assertTrue(newSession.getWidth() >= Math.round(48 * activity.getResources().getDisplayMetrics().density));
+            assertEquals(Math.round(56 * activity.getResources().getDisplayMetrics().density), newSession.getWidth());
         }
-        assertEquals("", newSession.getText().toString());
         assertEquals(activity.getString(R.string.action_new_session), newSession.getContentDescription());
         assertEquals(activity.getString(R.string.action_open_file_system), files.getContentDescription());
-        assertNotNull(newSession.getIcon());
+        assertNotNull(newSession.getDrawable());
         assertNotNull(files.getDrawable());
     }
 

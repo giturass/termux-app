@@ -12,6 +12,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
 import android.widget.PopupWindow;
+import android.widget.ScrollView;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -465,6 +466,29 @@ public class SessionActionsTest {
         verifySessionSwipe(R.id.session_card_content);
     }
 
+    @Test
+    public void selectingSessionBelowViewportRevealsItInSharedDrawerScroll() {
+        for (int i = 0; i < 12; i++) addSession(true);
+        ListView sessions = showSessionDrawer();
+        ScrollView scroll = activity.findViewById(R.id.terminal_drawer_scroll);
+        ReflectionHelpers.setField(activity, "mIsVisible", true);
+
+        client.checkAndScrollToSession(service.getTermuxSession(11).getTerminalSession());
+        measure(activity.getDrawer(), 320, 640);
+
+        assertEquals(11, sessions.getCheckedItemPosition());
+        assertEquals(0, sessions.getFirstVisiblePosition());
+        assertEquals(12, sessions.getChildCount());
+        assertTrue(scroll.getScrollY() > 0);
+        View lastCard = sessions.getChildAt(11);
+        Rect card = new Rect();
+        lastCard.getDrawingRect(card);
+        scroll.offsetDescendantRectToMyCoords(lastCard, card);
+        assertTrue(card.top >= scroll.getScrollY() + scroll.getPaddingTop());
+        assertTrue("The selected session must remain above the fixed FAB",
+            card.bottom <= scroll.getScrollY() + scroll.getHeight() - scroll.getPaddingBottom());
+    }
+
     private void verifySessionSwipe(int touchTargetId) {
         for (int i = 0; i < 12; i++) addSession(true);
         TerminalSession current = service.getTermuxSession(11).getTerminalSession();
@@ -492,7 +516,10 @@ public class SessionActionsTest {
         }
         Shadows.shadowOf(Looper.getMainLooper()).idle();
         assertNull(ShadowApplication.getInstance().getLatestPopupWindow());
-        assertTrue(sessions.getFirstVisiblePosition() > 0 || sessions.getChildAt(0).getTop() < 0);
+        ScrollView scroll = activity.findViewById(R.id.terminal_drawer_scroll);
+        assertTrue("Dragging a session must scroll the shared page", scroll.getScrollY() > 0);
+        assertEquals(0, sessions.getFirstVisiblePosition());
+        assertEquals(sessions.getPaddingTop(), sessions.getChildAt(0).getTop());
         assertEquals(12, service.getTermuxSessionsSize());
         assertSame(current, activity.getCurrentSession());
     }
@@ -542,6 +569,12 @@ public class SessionActionsTest {
     }
 
     private static void measure(View view, int widthDp, int heightDp) {
+        measureOnce(view, widthDp, heightDp);
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        measureOnce(view, widthDp, heightDp);
+    }
+
+    private static void measureOnce(View view, int widthDp, int heightDp) {
         float density = view.getResources().getDisplayMetrics().density;
         int width = Math.round(widthDp * density), height = Math.round(heightDp * density);
         view.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),

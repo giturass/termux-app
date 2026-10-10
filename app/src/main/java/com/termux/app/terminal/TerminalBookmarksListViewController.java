@@ -5,7 +5,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
-import android.widget.ListView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -26,11 +25,9 @@ public final class TerminalBookmarksListViewController extends ArrayAdapter<Term
 
     private final TermuxActivity activity;
     private final TerminalBookmarkStore store;
-    private final ListView list;
-    private final View drawer;
+    private final TerminalDrawerListView list;
     private final ImageButton toggle;
     private boolean collapsed;
-    private String bookmarkToReveal;
 
     public TerminalBookmarksListViewController(TermuxActivity activity, TerminalBookmarkStore store,
                                                 OnBookmarkClickListener listener) {
@@ -38,12 +35,11 @@ public final class TerminalBookmarksListViewController extends ArrayAdapter<Term
         this.activity = activity;
         this.store = store;
         list = activity.findViewById(R.id.terminal_bookmarks_list);
-        drawer = activity.findViewById(R.id.left_drawer);
         toggle = activity.findViewById(R.id.terminal_bookmarks_toggle);
         collapsed = store.isCollapsed();
         toggle.setOnClickListener(view -> {
             collapsed = !collapsed;
-            if (collapsed) bookmarkToReveal = null;
+            if (collapsed) list.cancelPendingReveal();
             store.setCollapsed(collapsed);
             updateExpandedState();
         });
@@ -53,9 +49,6 @@ public final class TerminalBookmarksListViewController extends ArrayAdapter<Term
             TerminalBookmark bookmark = getItem(position);
             if (bookmark != null) listener.onBookmarkClick(bookmark);
         });
-        drawer.addOnLayoutChangeListener((view, left, top, right, bottom,
-                                          oldLeft, oldTop, oldRight, oldBottom) -> resizeList());
-        list.post(this::resizeList);
     }
 
     public void refresh() {
@@ -81,7 +74,6 @@ public final class TerminalBookmarksListViewController extends ArrayAdapter<Term
         } else {
             notifyDataSetChanged();
         }
-        list.post(this::resizeList);
     }
 
     /** Show a newly saved bookmark, including when the collection was collapsed or scrolled. */
@@ -89,13 +81,17 @@ public final class TerminalBookmarksListViewController extends ArrayAdapter<Term
         refresh();
         for (int i = 0; i < getCount(); i++) {
             if (!getItem(i).id.equals(bookmarkId)) continue;
-            bookmarkToReveal = bookmarkId;
             if (collapsed) {
                 collapsed = false;
                 store.setCollapsed(false);
                 updateExpandedState();
             }
-            list.post(this::resizeList);
+            list.revealItem(() -> {
+                for (int position = 0; position < getCount(); position++) {
+                    if (getItem(position).id.equals(bookmarkId)) return position;
+                }
+                return -1;
+            });
             break;
         }
     }
@@ -105,40 +101,6 @@ public final class TerminalBookmarksListViewController extends ArrayAdapter<Term
         toggle.setImageResource(collapsed ? R.drawable.ic_bookmarks_expand : R.drawable.ic_bookmarks_collapse);
         toggle.setContentDescription(activity.getString(collapsed
             ? R.string.action_expand_bookmarks : R.string.action_collapse_bookmarks));
-        if (!collapsed) list.post(this::resizeList);
-    }
-
-    private void resizeList() {
-        if (collapsed) return;
-        // Let long collections scroll while reserving most drawer space for sessions.
-        int width = list.getWidth();
-        if (width <= 0 || drawer.getHeight() <= 0) return;
-        int contentHeight = 0;
-        int maxHeight = drawer.getHeight() / 3;
-        for (int i = 0; i < getCount() && contentHeight < maxHeight; i++) {
-            View row = getView(i, null, list);
-            int rowHeight = row.getLayoutParams().height;
-            row.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(Math.max(0, rowHeight),
-                    rowHeight >= 0 ? View.MeasureSpec.EXACTLY : View.MeasureSpec.UNSPECIFIED));
-            contentHeight += row.getMeasuredHeight() + (i == 0 ? 0 : list.getDividerHeight());
-        }
-        int height = Math.min(contentHeight, maxHeight);
-        ViewGroup.LayoutParams params = list.getLayoutParams();
-        if (params.height != height) {
-            params.height = height;
-            list.setLayoutParams(params);
-        }
-        if (bookmarkToReveal != null) {
-            // Wait for usable drawer dimensions; selection is applied by ListView's next layout.
-            for (int i = 0; i < getCount(); i++) {
-                if (getItem(i).id.equals(bookmarkToReveal)) {
-                    list.setSelection(i);
-                    break;
-                }
-            }
-            bookmarkToReveal = null;
-        }
     }
 
     @NonNull

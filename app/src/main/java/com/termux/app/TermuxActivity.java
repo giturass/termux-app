@@ -28,12 +28,10 @@ import android.widget.PopupMenu;
 import android.view.WindowManager;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
-import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
-import com.google.android.material.button.MaterialButton;
 import com.google.android.material.color.MaterialColors;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
@@ -710,11 +708,8 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         View drawer = findViewById(R.id.left_drawer);
         View header = findViewById(R.id.terminal_drawer_header);
-        LinearLayout actions = findViewById(R.id.terminal_drawer_actions);
-        MaterialButton newSessionButton = findViewById(R.id.new_session_button);
         int headerPaddingTop = header.getPaddingTop();
         int headerPaddingBottom = header.getPaddingBottom();
-        int actionsPaddingTop = actions.getPaddingTop();
 
         drawer.addOnLayoutChangeListener((view, left, top, right, bottom,
                                           oldLeft, oldTop, oldRight, oldBottom) -> {
@@ -727,14 +722,6 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
             header.setPaddingRelative(header.getPaddingStart(), compact ? 0 : headerPaddingTop,
                 header.getPaddingEnd(), compact ? 0 : headerPaddingBottom);
-            actions.setPaddingRelative(actions.getPaddingStart(), compact ? 0 : actionsPaddingTop,
-                actions.getPaddingEnd(), actions.getPaddingBottom());
-
-            LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) newSessionButton.getLayoutParams();
-            int buttonSize = Math.round(ViewUtils.dpToPx(this, compact ? 48 : 56));
-            params.width = buttonSize;
-            params.height = buttonSize;
-            newSessionButton.setLayoutParams(params);
         });
     }
 
