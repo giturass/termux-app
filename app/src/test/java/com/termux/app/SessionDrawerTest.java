@@ -100,8 +100,9 @@ public class SessionDrawerTest {
         View sessionTitle = activity.findViewById(R.id.terminal_sessions_header);
         assertEquals(8, bookmarks.getChildCount());
         assertEquals(8, sessions.getChildCount());
-        assertCardSizesAndSpacing(bookmarks);
-        assertCardSizesAndSpacing(sessions);
+        int cardWidth = scroll.getWidth() - scroll.getPaddingLeft() - scroll.getPaddingRight();
+        assertCardSizesAndSpacing(bookmarks, cardWidth);
+        assertCardSizesAndSpacing(sessions, cardWidth);
         assertFalse(bookmarks.canScrollVertically(1));
         assertFalse(bookmarks.canScrollVertically(-1));
         assertFalse(sessions.canScrollVertically(1));
@@ -133,7 +134,13 @@ public class SessionDrawerTest {
     @Test
     public void drawerFillsContentAndActionsFollowRightEdgeWhenViewportChanges() {
         ActivityController<TermuxActivity> controller = Robolectric.buildActivity(TermuxActivity.class);
-        TermuxActivity activity = host(controller, true);
+        TermuxActivity activity = host(controller, true, 2);
+        TerminalBookmarkStore store = new TerminalBookmarkStore(activity);
+        for (int i = 0; i < 2; i++) {
+            store.add(new TerminalBookmark("bookmark-" + i, "Bookmark " + i, "local", "",
+                Collections.emptyList(), "/tmp/" + i));
+        }
+        new TerminalBookmarksListViewController(activity, store, item -> {});
         controller.visible();
         activity.getDrawer().openDrawer(Gravity.START, false);
         ViewGroup content = activity.getDrawer();
@@ -141,6 +148,8 @@ public class SessionDrawerTest {
         View fab = activity.findViewById(R.id.new_session_button);
         View settings = activity.findViewById(R.id.settings_button);
         View files = activity.findViewById(R.id.file_system_button);
+        ListView bookmarks = activity.findViewById(R.id.terminal_bookmarks_list);
+        ListView sessions = activity.findViewById(R.id.terminal_sessions_list);
         int previousWidth = 0;
         int previousSettingsRight = 0;
         int previousFilesRight = 0;
@@ -164,7 +173,16 @@ public class SessionDrawerTest {
             previousWidth = drawer.getWidth();
             previousSettingsRight = settingsRight;
             previousFilesRight = filesRight;
-            assertCardSizesAndSpacing(activity.findViewById(R.id.terminal_sessions_list));
+            int cardWidth = drawer.getWidth() - dp(drawer, 24);
+            assertEquals(2, bookmarks.getChildCount());
+            assertEquals(2, sessions.getChildCount());
+            assertCardSizesAndSpacing(bookmarks, cardWidth);
+            assertCardSizesAndSpacing(sessions, cardWidth);
+            for (ListView list : new ListView[]{bookmarks, sessions}) {
+                Rect card = bounds(drawer, list.getChildAt(0));
+                assertEquals(dp(drawer, 12), card.left);
+                assertEquals(dp(drawer, 12), drawer.getWidth() - card.right);
+            }
         }
     }
 
@@ -238,11 +256,11 @@ public class SessionDrawerTest {
         view.layout(0, 0, width, height);
     }
 
-    private static void assertCardSizesAndSpacing(ListView list) {
+    private static void assertCardSizesAndSpacing(ListView list, int expectedWidth) {
         assertTrue(list.getChildCount() > 0);
         for (int i = 0; i < list.getChildCount(); i++) {
             View card = list.getChildAt(i);
-            assertEquals(dp(list, 280), card.getWidth());
+            assertEquals(expectedWidth, card.getWidth());
             assertEquals(dp(list, 64), card.getHeight());
             if (i > 0) assertEquals(dp(list, 8), card.getTop() - list.getChildAt(i - 1).getBottom());
         }

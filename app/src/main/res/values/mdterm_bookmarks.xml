@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="terminal_bookmarks_header">Bookmarks</string>
-    <string name="action_expand_bookmarks">Expand bookmarks</string>
-    <string name="action_collapse_bookmarks">Collapse bookmarks</string>
     <string name="terminal_bookmark_description">Bookmark</string>
     <string name="action_save_bookmark">Save as bookmark</string>
     <string name="action_rename_bookmark">Rename bookmark</string>

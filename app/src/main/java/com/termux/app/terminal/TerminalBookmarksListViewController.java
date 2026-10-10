@@ -4,7 +4,6 @@ import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -26,8 +25,6 @@ public final class TerminalBookmarksListViewController extends ArrayAdapter<Term
     private final TermuxActivity activity;
     private final TerminalBookmarkStore store;
     private final TerminalDrawerListView list;
-    private final ImageButton toggle;
-    private boolean collapsed;
 
     public TerminalBookmarksListViewController(TermuxActivity activity, TerminalBookmarkStore store,
                                                 OnBookmarkClickListener listener) {
@@ -35,15 +32,6 @@ public final class TerminalBookmarksListViewController extends ArrayAdapter<Term
         this.activity = activity;
         this.store = store;
         list = activity.findViewById(R.id.terminal_bookmarks_list);
-        toggle = activity.findViewById(R.id.terminal_bookmarks_toggle);
-        collapsed = store.isCollapsed();
-        toggle.setOnClickListener(view -> {
-            collapsed = !collapsed;
-            if (collapsed) list.cancelPendingReveal();
-            store.setCollapsed(collapsed);
-            updateExpandedState();
-        });
-        updateExpandedState();
         list.setAdapter(this);
         list.setOnItemClickListener((parent, view, position, id) -> {
             TerminalBookmark bookmark = getItem(position);
@@ -76,16 +64,11 @@ public final class TerminalBookmarksListViewController extends ArrayAdapter<Term
         }
     }
 
-    /** Show a newly saved bookmark, including when the collection was collapsed or scrolled. */
+    /** Show a newly saved bookmark in the drawer's shared scroll area. */
     public void refreshAndReveal(String bookmarkId) {
         refresh();
         for (int i = 0; i < getCount(); i++) {
             if (!getItem(i).id.equals(bookmarkId)) continue;
-            if (collapsed) {
-                collapsed = false;
-                store.setCollapsed(false);
-                updateExpandedState();
-            }
             list.revealItem(() -> {
                 for (int position = 0; position < getCount(); position++) {
                     if (getItem(position).id.equals(bookmarkId)) return position;
@@ -94,13 +77,6 @@ public final class TerminalBookmarksListViewController extends ArrayAdapter<Term
             });
             break;
         }
-    }
-
-    private void updateExpandedState() {
-        list.setVisibility(collapsed ? View.GONE : View.VISIBLE);
-        toggle.setImageResource(collapsed ? R.drawable.ic_bookmarks_expand : R.drawable.ic_bookmarks_collapse);
-        toggle.setContentDescription(activity.getString(collapsed
-            ? R.string.action_expand_bookmarks : R.string.action_collapse_bookmarks));
     }
 
     @NonNull

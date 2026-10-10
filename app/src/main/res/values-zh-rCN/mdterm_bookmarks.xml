@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="terminal_bookmarks_header">书签</string>
-    <string name="action_expand_bookmarks">展开书签</string>
-    <string name="action_collapse_bookmarks">折叠书签</string>
     <string name="terminal_bookmark_description">书签</string>
     <string name="action_save_bookmark">存为书签</string>
     <string name="action_rename_bookmark">重命名书签</string>

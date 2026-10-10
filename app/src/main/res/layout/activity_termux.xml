@@ -114,13 +114,14 @@
                         android:scrollbars="none">
 
                         <LinearLayout
-                            android:layout_width="280dp"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="vertical">
 
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
+                                android:minHeight="48dp"
                                 android:gravity="center_vertical"
                                 android:orientation="horizontal">
 
@@ -137,15 +138,6 @@
                                     android:textAppearance="?attr/textAppearanceLabelLarge"
                                     android:textColor="?attr/colorOnSurfaceVariant" />
 
-                                <ImageButton
-                                    android:id="@+id/terminal_bookmarks_toggle"
-                                    android:layout_width="48dp"
-                                    android:layout_height="48dp"
-                                    android:padding="12dp"
-                                    android:src="@drawable/ic_bookmarks_collapse"
-                                    android:background="?attr/selectableItemBackgroundBorderless"
-                                    android:contentDescription="@string/action_collapse_bookmarks"
-                                    app:tint="?attr/termuxActivityDrawerImageTint" />
                             </LinearLayout>
 
                             <com.termux.app.terminal.TerminalDrawerListView

@@ -53,11 +53,11 @@ public class BookmarkUiTest {
     }
 
     @Test
-    public void savingBookmarkExpandsCollapsedCollectionAndRevealsTheNewCard() {
+    public void savingBookmarkWithLegacyCollapsedPreferenceRevealsTheNewCard() {
         verifyNewBookmarkIsRevealed(true);
     }
 
-    private void verifyNewBookmarkIsRevealed(boolean initiallyCollapsed) {
+    private void verifyNewBookmarkIsRevealed(boolean legacyCollapsedPreference) {
         ActivityController<TermuxActivity> controller = Robolectric.buildActivity(TermuxActivity.class);
         TermuxActivity activity = host(controller);
         TerminalBookmarkStore store = new TerminalBookmarkStore(activity);
@@ -65,7 +65,8 @@ public class BookmarkUiTest {
             store.add(new TerminalBookmark("saved-" + i, "Bookmark " + i, "local", "",
                 Collections.emptyList(), "/tmp/" + i));
         }
-        store.setCollapsed(initiallyCollapsed);
+        activity.getSharedPreferences("terminal_bookmarks", 0).edit()
+            .putBoolean("collapsed", legacyCollapsedPreference).commit();
         TerminalBookmarksListViewController adapter =
             new TerminalBookmarksListViewController(activity, store, item -> {});
         controller.visible();
@@ -76,17 +77,16 @@ public class BookmarkUiTest {
         measureDrawer(drawer);
         ListView list = activity.findViewById(R.id.terminal_bookmarks_list);
         ScrollView scroll = activity.findViewById(R.id.terminal_drawer_scroll);
-        if (!initiallyCollapsed) {
-            View lastCard = list.getChildAt(adapter.getCount() - 1);
-            assertTrue(bounds(drawer, lastCard).bottom > bounds(drawer, scroll).bottom - scroll.getPaddingBottom());
-        }
+        assertEquals(View.VISIBLE, list.getVisibility());
+        assertEquals(adapter.getCount(), list.getChildCount());
+        View lastCard = list.getChildAt(adapter.getCount() - 1);
+        assertTrue(bounds(drawer, lastCard).bottom > bounds(drawer, scroll).bottom - scroll.getPaddingBottom());
 
         store.add(bookmark());
         adapter.refreshAndReveal("location");
         Shadows.shadowOf(Looper.getMainLooper()).idle();
         measureDrawer(drawer);
         assertEquals(View.VISIBLE, list.getVisibility());
-        assertFalse(store.isCollapsed());
         int newPosition = adapter.getCount() - 1;
         assertEquals(0, list.getFirstVisiblePosition());
         assertEquals(adapter.getCount(), list.getChildCount());
@@ -115,34 +115,33 @@ public class BookmarkUiTest {
     }
 
     @Test
-    public void collapsingBookmarksReclaimsSpaceAndSurvivesRefreshAndRecreation() {
+    public void legacyCollapsedPreferenceKeepsBookmarksVisibleAfterRefreshAndRecreation() {
         ActivityController<TermuxActivity> controller = Robolectric.buildActivity(TermuxActivity.class);
         TermuxActivity activity = host(controller);
+        assertTrue(activity.getSharedPreferences("terminal_bookmarks", 0).edit()
+            .putBoolean("collapsed", true).commit());
         TerminalBookmarkStore store = new TerminalBookmarkStore(activity);
         store.add(bookmark());
         TerminalBookmarksListViewController adapter =
             new TerminalBookmarksListViewController(activity, store, item -> {});
         ViewGroup drawer = activity.getDrawer();
         ListView list = activity.findViewById(R.id.terminal_bookmarks_list);
-        View sessions = activity.findViewById(R.id.terminal_sessions_list);
-        View toggle = activity.findViewById(R.id.terminal_bookmarks_toggle);
         controller.visible();
         activity.getDrawer().openDrawer(Gravity.START, false);
         measureDrawer(drawer);
         Shadows.shadowOf(Looper.getMainLooper()).idle();
         measureDrawer(drawer);
-        int expandedSessionsTop = bounds(drawer, sessions).top;
+        assertEquals(View.VISIBLE, list.getVisibility());
         assertTrue(list.getHeight() > 0);
-        toggle.performClick();
-        measureDrawer(drawer);
-        assertEquals(View.GONE, list.getVisibility());
-        assertTrue("Collapsing bookmarks moves sessions up in the shared page",
-            bounds(drawer, sessions).top < expandedSessionsTop);
-        assertEquals(activity.getString(R.string.action_expand_bookmarks), toggle.getContentDescription());
-        store.rename("location", "Updated while collapsed");
+        assertEquals(1, list.getChildCount());
+        assertEquals("location", list.getChildAt(0).getTag());
+        store.rename("location", "Updated bookmark");
         adapter.refresh();
         Shadows.shadowOf(Looper.getMainLooper()).idle();
-        assertEquals(View.GONE, list.getVisibility());
+        measureDrawer(drawer);
+        assertEquals(View.VISIBLE, list.getVisibility());
+        assertEquals("Updated bookmark", ((TextView) list.getChildAt(0)
+            .findViewById(R.id.session_name)).getText().toString());
 
         ActivityController<TermuxActivity> recreatedController = Robolectric.buildActivity(TermuxActivity.class);
         TermuxActivity recreated = recreatedController.get();
@@ -151,17 +150,18 @@ public class BookmarkUiTest {
         TerminalBookmarksListViewController restored = new TerminalBookmarksListViewController(
             recreated, new TerminalBookmarkStore(recreated), item -> {});
         ListView restoredList = recreated.findViewById(R.id.terminal_bookmarks_list);
-        assertEquals(View.GONE, restoredList.getVisibility());
+        assertEquals(View.VISIBLE, restoredList.getVisibility());
         recreatedController.visible();
         recreated.getDrawer().openDrawer(Gravity.START, false);
-        recreated.findViewById(R.id.terminal_bookmarks_toggle).performClick();
         measureDrawer(recreated.getDrawer());
         Shadows.shadowOf(Looper.getMainLooper()).idle();
         measureDrawer(recreated.getDrawer());
         assertEquals(View.VISIBLE, restoredList.getVisibility());
         assertTrue(restoredList.getHeight() > 0);
-        assertEquals("Updated while collapsed", restored.getItem(0).name);
-        assertFalse(new TerminalBookmarkStore(recreated).isCollapsed());
+        assertEquals(1, restoredList.getChildCount());
+        assertEquals("Updated bookmark", restored.getItem(0).name);
+        assertEquals("Updated bookmark", ((TextView) restoredList.getChildAt(0)
+            .findViewById(R.id.session_name)).getText().toString());
     }
 
     @Test
@@ -515,11 +515,14 @@ public class BookmarkUiTest {
     }
 
     private static void measureDrawerOnce(View drawer) {
-        float density = drawer.getResources().getDisplayMetrics().density;
+        // Include parent margins so real layout passes do not resize cards during a touch.
+        View root = drawer.getRootView().findViewById(R.id.activity_termux_root_view);
+        assertNotNull(root);
+        float density = root.getResources().getDisplayMetrics().density;
         int width = Math.round(320 * density), height = Math.round(640 * density);
-        drawer.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+        root.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
-        drawer.layout(0, 0, width, height);
+        root.layout(0, 0, width, height);
     }
 
     private static ListView popupList(View view) {

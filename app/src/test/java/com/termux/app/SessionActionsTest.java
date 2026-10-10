@@ -575,11 +575,14 @@ public class SessionActionsTest {
     }
 
     private static void measureOnce(View view, int widthDp, int heightDp) {
-        float density = view.getResources().getDisplayMetrics().density;
+        // Include parent margins so real layout passes do not resize cards during a touch.
+        View root = view.getRootView().findViewById(R.id.activity_termux_root_view);
+        assertNotNull(root);
+        float density = root.getResources().getDisplayMetrics().density;
         int width = Math.round(widthDp * density), height = Math.round(heightDp * density);
-        view.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+        root.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
-        view.layout(0, 0, width, height);
+        root.layout(0, 0, width, height);
     }
 
     private TermuxSession addSession(boolean running) {

@@ -18,14 +18,6 @@ public final class TerminalBookmarkStore {
         preferences = context.getSharedPreferences("terminal_bookmarks", Context.MODE_PRIVATE);
     }
 
-    public boolean isCollapsed() {
-        return preferences.getBoolean("collapsed", false);
-    }
-
-    public void setCollapsed(boolean collapsed) {
-        preferences.edit().putBoolean("collapsed", collapsed).apply();
-    }
-
     public List<TerminalBookmark> getAll() {
         List<TerminalBookmark> bookmarks = new ArrayList<>();
         try {
